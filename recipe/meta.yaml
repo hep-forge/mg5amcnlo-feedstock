@@ -1,10 +1,11 @@
 {% set versions = {
-    "0.0.0": "REPLACE_WITH_SHA256"
+    "3.8.1": "281b9055af99f45217dc99378c520215f3129e65a9ab2fde6636e274aa6cd692"
 } %}
 
 {% set version = environ.get('COMMIT_VERSION', None) %}
 {% set version = version or versions.keys()|first %}
 {% set version = version|string %}
+{% set series = version.split('.')[0] ~ '.0/' ~ version.split('.')[0] ~ '.' ~ version.split('.')[1] ~ '.x' %}
 
 {% set name = environ.get('ANACONDA_PACKAGE', 'mg5amcnlo')|string|lower %}
 
@@ -13,36 +14,95 @@ package:
   version: {{ environ.get('ANACONDA_VERSION', version)|replace("-", ".") }}
 
 source:
-  url: "https://github.com/mg5amcnlo/mg5amcnlo/archive/refs/tags/{{ version }}.tar.gz"   # TODO: confirm upstream's actual tag/tarball naming
+  url: "https://launchpad.net/mg5amcnlo/{{ series }}/+download/MG5_aMC_v{{ version }}.tar.gz"
   {% if versions.get(version, None) %}
   sha256: {{ versions.get(version) }}
   {% endif %}
 
 build:
   number: 0
-  run_exports:
-    - {{ pin_subpackage(name, max_pin="x.x.x") }}
+  skip: true  # [not linux]
 
 requirements:
   build:
+    - {{ stdlib('c') }}
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - {{ stdlib('c') }}
-    - cmake
+    - {{ compiler('fortran') }}
     - make
+    - cmake
+    - patch
+    - sed
+    - grep
   host:
-    # TODO: library dependencies
+    - python
+    - six
+    - ply
   run:
-    # TODO: runtime dependencies
+    # MG5_aMC compiles the code it generates, so it needs the compilers that
+    # built the one-loop libraries' Fortran modules (same gfortran major)
+    - gfortran_{{ target_platform }} {{ fortran_compiler_version }}.*
+    - gxx_{{ target_platform }} {{ cxx_compiler_version }}.*
+    # Plain gfortran/g++ names: MG5_aMC looks them up with `which`, and
+    # otherwise reports any compile error as a missing compiler
+    - gfortran {{ fortran_compiler_version }}.*
+    - gxx {{ cxx_compiler_version }}.*
+    - make
+    - tar
+    - wget
+    - curl
+    - perl
+    - bc
+    - procps-ng
+    - python
+    - six
+    - ply
+    - numpy
+    - fastjet
+    - fastjet-contrib
+    - emela
+    - lhapdf
+    - libtirpc
+    - hepmc2
+    - ghostscript
+    - gnuplot
 
 test:
+  files:
+    - tutorial.mg5
+    - tutorial_amc-at-nlo.mg5
   commands:
-    - echo "TODO: a real smoke test"
+    - test -f $PREFIX/MG5_aMC/input/mg5_configuration.txt
+    - test -f $PREFIX/MG5_aMC/vendor/StdHEP/lib/libstdhep.a
+    - test -f $PREFIX/MG5_aMC/vendor/StdHEP/lib/libFmcfio.a
+    - test -f $PREFIX/MG5_aMC/vendor/CutTools/includects/libcts.a
+    - test -f $PREFIX/MG5_aMC/vendor/CutTools/includects/mpmodule.mod
+    - test -f $PREFIX/MG5_aMC/vendor/IREGI/src/libiregi.a
+    - test -f $PREFIX/MG5_aMC/HEPTools/lib/libcollier.a
+    - test -f $PREFIX/MG5_aMC/HEPTools/include/collier.mod
+    - mg5_aMC --help
+    - echo "exit" | mg5_aMC
+    - lhapdf install NNPDF23_lo_as_0130_qed NNPDF23_nlo_as_0119_qed > /dev/null
+    # Tree level: p p > t t~ and W+ j, generated, compiled and run
+    - mg5_aMC ./tutorial.mg5
+    - test ! -f ME5_debug
+    # NLO QCD: compiles against CutTools, IREGI and COLLIER
+    - mg5_aMC ./tutorial_amc-at-nlo.mg5
+    - test ! -f ME5_debug
 
 about:
-  home: "https://github.com/mg5amcnlo/mg5amcnlo"
+  home: "https://launchpad.net/mg5amcnlo"
+  dev_url: "https://github.com/mg5amcnlo/mg5amcnlo"
+  # modified University of Illinois/NCSA license
   license: "LicenseRef-NCSA"
+  license_file: MG5_aMC_v{{ version|replace('.', '_') }}/LICENSE
   summary: "MadGraph5_aMC@NLO: LO and NLO matrix elements, cross sections and events"
+  description: |
+    MadGraph5_aMC@NLO computes cross sections, generates hard events and
+    matches them to parton showers, at LO for any user-defined Lagrangian
+    and at NLO for QCD and electroweak corrections. Its one-loop
+    reductions use the CutTools, IREGI and COLLIER copies that MG5_aMC
+    ships, built with the package.
 
 extra:
   recipe-maintainers:

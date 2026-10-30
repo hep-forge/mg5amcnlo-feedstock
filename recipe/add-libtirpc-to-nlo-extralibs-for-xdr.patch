@@ -1,0 +1,32 @@
+From aa62d8ce9dc38702105b5920353b743d300c7cdf Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Tue, 23 Sep 2025 00:17:11 -0600
+Subject: [PATCH] FIX: Add libtirpc to NLO EXTRALIBS to provide XDR symbols
+
+* mg5amncnlo NLO compilation requires XDR library functions. Historically, glibc
+  provided these symbols through the bundeled SunRPC (Remote Procedure Call)
+  package. SunRPC has been removed and XDR symbols now exist in tirpc
+  (Transport Independent Remote Procedure Call) library. The StdHEP library
+  needs these symbols, so add tirpc to EXTRALIBS after stdhep and Fmcfio.
+   - c.f. https://linux.die.net/man/3/xdr
+   - c.f. https://stackoverflow.com/questions/75930751/undefined-reference-to-xdr-string-with-gnu-libc-2-31
+---
+ madgraph/various/shower_card.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/madgraph/various/shower_card.py b/madgraph/various/shower_card.py
+index 16ed72b..ac8fdc7 100755
+--- a/madgraph/various/shower_card.py
++++ b/madgraph/various/shower_card.py
+@@ -188,7 +188,7 @@ class ShowerCard(banner.RunCard):
+             self.add_param("DM_%i" % i, "", hidden=True, comment="decay syntax (warning syntax depend of the PS used)")
+ 
+         # Extra libraries/analyses
+-        self.add_param("EXTRALIBS", "stdhep Fmcfio", comment="Extra-libraries (not LHAPDF)")
++        self.add_param("EXTRALIBS", "stdhep Fmcfio tirpc", comment="Extra-libraries (not LHAPDF)")
+         self.add_param("EXTRAPATHS", "../lib", comment="Path to the extra-libraries")
+         self.add_param("INCLUDEPATHS", "", comment="Path to header files needed by c++. Dir names separated by white spaces")
+         self.add_param("ANALYSE", "", comment="User's analysis and histogramming routines; HwU.o should be linked first",
+-- 
+2.51.0
+

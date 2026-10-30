@@ -1,0 +1,12 @@
+set crash_on_error True
+
+generate p p > e+ ve [QCD]
+
+# add a second process
+add process p p > e+ e- [QCD] @2
+
+# export processes
+output MY_FIRST_AMCATNLO_RUN
+
+# generate events
+launch MY_FIRST_AMCATNLO_RUN

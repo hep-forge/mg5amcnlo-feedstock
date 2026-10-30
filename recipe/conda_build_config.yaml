@@ -10,3 +10,25 @@ c_compiler:
   - gcc
 cxx_compiler:
   - gxx
+
+# ---- Compiler floor (ABI)
+# Pin the compiler major rather than inheriting conda-build's "newest
+# available". Unpinned, each rebuild silently takes whatever conda-forge
+# shipped most recently -- that is how minio-cpp moved from GCC 15 to 16
+# between two rebuilds, published a libstdcxx >=16 run_export and became
+# unsolvable against `root`, which pins libstdcxx 15.* and so caps every
+# dependent below 16. A floor, not a ceiling: raise per-package if needed.
+fortran_compiler_version:   # [linux]
+  - 14
+libgcc_version:             # [linux]
+  - 14.*
+libstdcxx_version:          # [linux]
+  - 14.*
+c_compiler_version:         # [linux]
+  - 14
+cxx_compiler_version:       # [linux]
+  - 14
+
+# Python matches hep-forge's ROOT stack, which is built for 3.12 only.
+python:
+  - 3.12
